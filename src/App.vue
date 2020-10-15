@@ -1,17 +1,38 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <textarea name="name" style="visibility: hidden"></textarea>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
 
 export default {
   name: 'App',
+  data(){
+    return {
+
+    };
+  },
+  mounted(){
+    const el = document.querySelector('textarea');
+
+    // document.domain = 'null'
+      // Open the iframe
+      this.stackedit.openFile({
+        name: 'Filename', // with an optional filename
+        content: {
+          text: el.value // and the Markdown content.
+        }
+      });
+
+      // Listen to StackEdit events and apply the changes to the textarea.
+      this.stackedit.on('fileChange', (file) => {
+        el.value = file.content.text;
+      });
+
+      this.dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] });
+  },
   components: {
-    HelloWorld
   }
 }
 </script>
