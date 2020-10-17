@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, dialog, Menu, BrowserWindow, ipcMain} from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -8,6 +8,70 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
+const menu = Menu.buildFromTemplate([
+    {
+      label: 'File',
+      submenu: [
+          {
+             label:'New File',
+             accelerator: 'CmdOrCtrl+1',
+             // this is the main bit hijack the click event
+             click() {
+                win.webContents.send('NEW_FILE', 'new file')
+             }
+         },
+        {
+           label:'Open File',
+           accelerator: 'CmdOrCtrl+O',
+           // this is the main bit hijack the click event
+           click() {
+              // construct the select file dialog
+              dialog.showOpenDialog({
+                properties: ['openFile']
+              })
+              .then(function(fileObj) {
+                 // the fileObj has two props
+                 if (!fileObj.canceled) {
+                   win.webContents.send('FILE_OPEN', fileObj.filePaths)
+                 }
+              })
+  // should always handle the error yourself, later Electron release might crash if you don't
+              .catch(function(err) {
+                 console.error(err)
+              })
+           }
+       },
+       {
+          label:'Save File',
+          accelerator: 'CmdOrCtrl+s',
+          // this is the main bit hijack the click event
+          click() {
+             // construct the select file dialog
+             dialog.showSaveDialog({
+             })
+             .then(function(fileObj) {
+                // the fileObj has two props
+                console.log(fileObj, 'here');
+                if (!fileObj.canceled) {
+                  win.webContents.send('FILE_SAVE', fileObj.filePath)
+                }
+             })
+ // should always handle the error yourself, later Electron release might crash if you don't
+             .catch(function(err) {
+                console.error(err)
+             })
+          }
+      },
+       {
+           label:'Exit',
+           click() {
+              app.quit()
+           }
+         }
+      ]
+    }
+  ])
+  Menu.setApplicationMenu(menu)
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -72,6 +136,9 @@ app.on('ready', async () => {
   }
   createWindow()
 })
+
+
+
 
 // Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
