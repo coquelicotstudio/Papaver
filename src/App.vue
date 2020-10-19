@@ -10,7 +10,10 @@ export default {
   name: 'App',
   data(){
     return {
-      content: "bla bla"
+      content: "bla bla",
+      blog:'',
+      editing:false,
+      blog_data:{}
     };
   },
   mounted(){
@@ -32,6 +35,8 @@ export default {
       });
 
       this.ipcRenderer.on('NEW_FILE', filename => {
+        root.editing = false;
+        root.content = '';
         root.stackedit.openFile({
           name: filename, // with an optional filename
           content: {
@@ -44,6 +49,7 @@ export default {
         root.fs.readFile(args[0], 'utf8', function (err, data) {
           if (err) return console.log(err);
           root.content = data;
+          root.editing = true;
           root.stackedit.openFile({
             name: 'Filename', // with an optional filename
             content: {
@@ -54,20 +60,31 @@ export default {
       })
 
       this.ipcRenderer.on('FILE_SAVE', (event, args) => {
-        root.fs.writeFile(args, root.content, function (err) {
+
+        root.fs.writeFile(args.file, root.content, function (err) {
           if (err) return console.log(err);
+          let def = root.electron_store.get('default-directory');
+          root.blog = root.path.join(def, 'blog.json');
+          root.fs.readFile(root.blog, 'utf8', function (err, data) {
+            root.blog_data = JSON.parse(data);
+            let date = new Date;
+            if(!root.editing){
+              root.blog_data.entries[args.name] = {
+                title: args.name,
+                type: args.type,
+                created:date.toJSON(),
+                modified:date.toJSON(),
+              };
+            } else {
+              root.blog_data.entries[args.name].modified = date.toJSON();
+            }
+
+            root.fs.writeFile(root.blog, JSON.stringify(root.blog_data), function (err) {
+              if (err) return console.log(err);
+            });
+          });
         });
       })
-
-      // this.dialog.showOpenDialog({
-      //   properties: ['openFile']
-      //   }).then(result => {
-      //     console.log(result);
-      //     console.log(result.canceled)
-      //     console.log(result.filePaths)
-      //   }).catch(err => {
-      //     console.log(err)
-      //   })
   },
   components: {
   }

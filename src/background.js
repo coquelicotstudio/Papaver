@@ -1,6 +1,9 @@
 'use strict'
 
 import { app, protocol, dialog, Menu, BrowserWindow, ipcMain} from 'electron'
+const Electron_store = require('electron-store');
+const path = require('path');
+const fs = require('fs');
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -8,13 +11,14 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
+const electron_store = new Electron_store();
 const menu = Menu.buildFromTemplate([
     {
       label: 'File',
       submenu: [
           {
              label:'New File',
-             accelerator: 'CmdOrCtrl+1',
+             accelerator: 'CmdOrCtrl+n',
              // this is the main bit hijack the click event
              click() {
                 win.webContents.send('NEW_FILE', 'new file')
@@ -22,12 +26,13 @@ const menu = Menu.buildFromTemplate([
          },
         {
            label:'Open File',
-           accelerator: 'CmdOrCtrl+O',
+           accelerator: 'CmdOrCtrl+o',
            // this is the main bit hijack the click event
            click() {
               // construct the select file dialog
               dialog.showOpenDialog({
-                properties: ['openFile']
+                properties: ['openFile'],
+                title: "Open File"
               })
               .then(function(fileObj) {
                  // the fileObj has two props
@@ -35,7 +40,6 @@ const menu = Menu.buildFromTemplate([
                    win.webContents.send('FILE_OPEN', fileObj.filePaths)
                  }
               })
-  // should always handle the error yourself, later Electron release might crash if you don't
               .catch(function(err) {
                  console.error(err)
               })
@@ -47,16 +51,25 @@ const menu = Menu.buildFromTemplate([
           // this is the main bit hijack the click event
           click() {
              // construct the select file dialog
+             const default_dir = electron_store.get('default-directory');
              dialog.showSaveDialog({
+               filters: [{
+                  name: 'markdown (.md)',
+                  extensions: ['md']
+                }],
+               defaultPath:default_dir,
+               title: "Save File"
              })
              .then(function(fileObj) {
                 // the fileObj has two props
-                console.log(fileObj, 'here');
+                let dir = path.parse(fileObj.filePath).dir;
+                let name = path.parse(fileObj.filePath).name
+                let els = dir.split(path.sep);
+                let type = els[els.length-1]
                 if (!fileObj.canceled) {
-                  win.webContents.send('FILE_SAVE', fileObj.filePath)
+                  win.webContents.send('FILE_SAVE', {file:fileObj.filePath, type:type, name:name})
                 }
              })
- // should always handle the error yourself, later Electron release might crash if you don't
              .catch(function(err) {
                 console.error(err)
              })
@@ -69,14 +82,44 @@ const menu = Menu.buildFromTemplate([
            }
          }
       ]
+    },
+    {
+      label:'Preferences',
+      submenu:[
+        {
+          label:'Set default directory',
+          accelerator:"CmdOrCtrl+d",
+          click() {
+            dialog.showOpenDialog({
+              title: "Set the default directory",
+              properties: ['openDirectory']
+            })
+            .then(function(fileObj) {
+              console.log(fileObj);
+               // the fileObj has two props
+               if (!fileObj.canceled) {
+                 electron_store.set('default-directory', fileObj.filePaths[0]);
+               }
+            })
+            .catch(function(err) {
+               console.error(err)
+            })
+          }
+        }
+      ]
     }
   ])
+
+
   Menu.setApplicationMenu(menu)
+
+
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
 ])
+
 
 function createWindow() {
   // Create the browser window.
@@ -90,6 +133,7 @@ function createWindow() {
     }
   })
 
+
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
@@ -99,11 +143,57 @@ function createWindow() {
     // Load the index.html when not in development
     win.loadURL('app://./index.html')
   }
-
+  win.webContents.openDevTools()
   win.on('closed', () => {
     win = null
   })
+
+
+  let default_dir = electron_store.get('default-directory');
+  fs.access(default_dir, (err) => {
+    console.log(err);
+    if(!err) {
+      let child = new BrowserWindow({ width:200, height:200, parent: win, modal: true, frame:false})
+      child.once('ready-to-show', () => {
+        child.show()
+      })
+      dialog.showMessageBox(child, {
+        type:"info",
+        title:"Default post directory missing!",
+        message:"You don't have a default directory for your articles yet. Set it now!",
+        buttons:["Let's do it!"]
+      })
+      .then(function() {
+        child.destroy();
+        dialog.showOpenDialog({
+          title: "Set the default directory",
+          properties: ['openDirectory']
+        })
+        .then(function(fileObj) {
+           // the fileObj has two props
+           if (!fileObj.canceled) {
+             default_dir = fileObj.filePaths[0];
+             electron_store.set('default-directory', fileObj.filePaths[0]);
+           }
+        })
+        .catch(function(err) {
+           console.error(err)
+        })
+      })
+    }
+  })
+
+  const blog = path.join(default_dir, 'blog.json')
+  fs.access(blog, (err) => {
+    if (err) {
+      fs.writeFile(blog, JSON.stringify({entries:{}}), function (err) {
+        if (err) return console.log(err);
+      });
+      }
+  })
 }
+
+
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
