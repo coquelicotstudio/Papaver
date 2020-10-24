@@ -1,6 +1,19 @@
 <template>
   <div id="app">
+    <div class="">
+
+
+    <div id="myModal" class="modal" :style="{display:(dashboard ? 'block' : 'none')}">
+
+      <!-- Modal content -->
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <p>Some text in the Modal..</p>
+      </div>
+
+    </div>
     <textarea name="name" style="visibility: visible" v-model="content"></textarea>
+    </div>
   </div>
 </template>
 
@@ -13,7 +26,8 @@ export default {
       content: "bla bla",
       blog:'',
       editing:false,
-      blog_data:{}
+      blog_data:{},
+      dashboard: false,
     };
   },
   mounted(){
@@ -86,6 +100,10 @@ export default {
           });
         });
       })
+
+      this.ipcRenderer.on('DASH', () => {
+        root.dashboard = true;
+      })
   },
   components: {
   }
@@ -101,4 +119,26 @@ export default {
   color: #2c3e50;
   margin-top: 60px;
 }
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 2000000; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+
 </style>

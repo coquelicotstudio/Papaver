@@ -12,6 +12,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
 let editing = false;
+let currentfile = '';
 const electron_store = new Electron_store();
 
 const menu = Menu.buildFromTemplate([
@@ -43,9 +44,10 @@ const menu = Menu.buildFromTemplate([
               .then(function(fileObj) {
                  // the fileObj has two props
                  if (!fileObj.canceled) {
+                   console.log(fileObj);
                    win.webContents.send('FILE_OPEN', fileObj.filePaths)
                    editing = true;
-                   console.log(menu.items[1]);
+                   currentfile = path.parse(fileObj.filePaths[0]).name;
                    menu.items[1].submenu.items[1].enabled = true;
                  }
               })
@@ -154,8 +156,16 @@ const menu = Menu.buildFromTemplate([
             })
             .then(function(fileObj) {
                // the fileObj has two props
+               const default_dir = electron_store.get('default-directory');
                if (!fileObj.canceled) {
-                 fileObj.filePaths[0]
+                 let img = path.parse(fileObj.filePaths[0]).base;
+                 fs.readFile(path.join(default_dir, 'blog.json'), 'utf8', function(err, data){
+                   data = JSON.parse(data)
+                  data.entries[currentfile].preview = img;
+                  fs.writeFile(path.join(default_dir, 'blog.json'), JSON.stringify(data), function(err){
+                    if (err) return console.log(err);
+                  })
+                 })
                }
             })
             .catch(function(err) {
@@ -164,6 +174,13 @@ const menu = Menu.buildFromTemplate([
           }
         }
       ]
+    },
+    {
+      label:'Dashboard',
+      accelerator: 'CmdOrCtrl+a',
+      click() {
+        win.webContents.send('DASH', {})
+      }
     }
   ])
 
@@ -209,7 +226,7 @@ function createWindow() {
   let default_dir = electron_store.get('default-directory');
   default_dir = (default_dir ? default_dir : '');
   fs.access(default_dir, (err) => {
-    if(!err) {
+    if(err) {
 
       let child = new BrowserWindow({ width:200, height:200, parent: win, modal: true, frame:false})
       child.once('ready-to-show', () => {
