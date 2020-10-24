@@ -60,7 +60,7 @@ export default {
       })
 
       this.ipcRenderer.on('FILE_SAVE', (event, args) => {
-
+        console.log(args);
         root.fs.writeFile(args.file, root.content, function (err) {
           if (err) return console.log(err);
           let def = root.electron_store.get('default-directory');
@@ -72,6 +72,7 @@ export default {
               root.blog_data.entries[args.name] = {
                 title: args.name,
                 type: args.type,
+                preview: args.preview,
                 created:date.toJSON(),
                 modified:date.toJSON(),
               };

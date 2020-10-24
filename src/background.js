@@ -10,8 +10,10 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let win
+let win;
+let editing = false;
 const electron_store = new Electron_store();
+
 const menu = Menu.buildFromTemplate([
     {
       label: 'File',
@@ -21,6 +23,8 @@ const menu = Menu.buildFromTemplate([
              accelerator: 'CmdOrCtrl+n',
              // this is the main bit hijack the click event
              click() {
+               editing = false;
+                menu.items[1].submenu.items[1].enabled = false;
                 win.webContents.send('NEW_FILE', 'new file')
              }
          },
@@ -30,14 +34,19 @@ const menu = Menu.buildFromTemplate([
            // this is the main bit hijack the click event
            click() {
               // construct the select file dialog
+              const default_dir = electron_store.get('default-directory');
               dialog.showOpenDialog({
                 properties: ['openFile'],
-                title: "Open File"
+                title: "Open File",
+                defaultPath:default_dir,
               })
               .then(function(fileObj) {
                  // the fileObj has two props
                  if (!fileObj.canceled) {
                    win.webContents.send('FILE_OPEN', fileObj.filePaths)
+                   editing = true;
+                   console.log(menu.items[1]);
+                   menu.items[1].submenu.items[1].enabled = true;
                  }
               })
               .catch(function(err) {
@@ -52,6 +61,7 @@ const menu = Menu.buildFromTemplate([
           click() {
              // construct the select file dialog
              const default_dir = electron_store.get('default-directory');
+             let preview = '';
              dialog.showSaveDialog({
                filters: [{
                   name: 'markdown (.md)',
@@ -65,10 +75,35 @@ const menu = Menu.buildFromTemplate([
                 let dir = path.parse(fileObj.filePath).dir;
                 let name = path.parse(fileObj.filePath).name
                 let els = dir.split(path.sep);
-                let type = els[els.length-1]
-                if (!fileObj.canceled) {
-                  win.webContents.send('FILE_SAVE', {file:fileObj.filePath, type:type, name:name})
-                }
+                let type = els[els.length-1];
+                dialog.showMessageBox({
+                  type:"info",
+                  title:"Set a preview image!",
+                  message:"Set a preview image so the article will have a thumbnail in the 'Works' section",
+                  buttons:["Let's do it!"]
+                })
+                .then(function() {
+                  dialog.showOpenDialog({
+                    title: "Set a preview image",
+                    properties: ['openFile'],
+                    defaultPath: path.join(default_dir, 'images')
+                  })
+                  .then(function(imgObj) {
+                     // the fileObj has two props
+                     if (!imgObj.canceled) {
+                       console.log(preview);
+                       preview = path.parse(imgObj.filePaths[0]).base
+                       if (!fileObj.canceled) {
+                         console.log(preview);
+                         menu.items[1].submenu.items[1].enabled = true;
+                         win.webContents.send('FILE_SAVE', {file:fileObj.filePath, type:type, name:name, preview:preview})
+                       }
+                     }
+                  })
+                  .catch(function(err) {
+                     console.error(err)
+                  })
+                })
              })
              .catch(function(err) {
                 console.error(err)
@@ -99,6 +134,28 @@ const menu = Menu.buildFromTemplate([
                // the fileObj has two props
                if (!fileObj.canceled) {
                  electron_store.set('default-directory', fileObj.filePaths[0]);
+               }
+            })
+            .catch(function(err) {
+               console.error(err)
+            })
+          }
+        },
+        {
+          label: 'Change preview image',
+          accelerator:"CmdOrCtrl+i",
+          enabled:editing,
+          click() {
+            const default_dir = electron_store.get('default-directory');
+            dialog.showOpenDialog({
+              title: "Change preview image",
+              properties: ['openFile'],
+              defaultPath: path.join(default_dir, 'images'),
+            })
+            .then(function(fileObj) {
+               // the fileObj has two props
+               if (!fileObj.canceled) {
+                 fileObj.filePaths[0]
                }
             })
             .catch(function(err) {
@@ -150,9 +207,10 @@ function createWindow() {
 
 
   let default_dir = electron_store.get('default-directory');
+  default_dir = (default_dir ? default_dir : '');
   fs.access(default_dir, (err) => {
-    console.log(err);
     if(!err) {
+
       let child = new BrowserWindow({ width:200, height:200, parent: win, modal: true, frame:false})
       child.once('ready-to-show', () => {
         child.show()
