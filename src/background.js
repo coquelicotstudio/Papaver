@@ -158,6 +158,7 @@ const menu = Menu.buildFromTemplate([
                // the fileObj has two props
                const default_dir = electron_store.get('default-directory');
                if (!fileObj.canceled) {
+                 console.log(fileObj.filePaths);
                  let img = path.parse(fileObj.filePaths[0]).base;
                  fs.readFile(path.join(default_dir, 'blog.json'), 'utf8', function(err, data){
                    data = JSON.parse(data)
@@ -203,7 +204,8 @@ function createWindow() {
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION
+      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
+      webSecurity: false
     }
   })
 
@@ -211,7 +213,7 @@ function createWindow() {
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
-    if (!process.env.IS_TEST) win.webContents.openDevTools()
+    // if (!process.env.IS_TEST) win.webContents.openDevTools()
   } else {
     createProtocol('app')
     // Load the index.html when not in development
@@ -261,7 +263,7 @@ function createWindow() {
   const blog = path.join(default_dir, 'blog.json')
   fs.access(blog, (err) => {
     if (err) {
-      fs.writeFile(blog, JSON.stringify({entries:{}}), function (err) {
+      fs.writeFile(blog, JSON.stringify({entries:{}, home:{image:''}}), function (err) {
         if (err) return console.log(err);
       });
       }
