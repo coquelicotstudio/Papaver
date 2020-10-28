@@ -14,8 +14,11 @@
   },
   "main": "background.js",
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.1",
     "core-js": "^3.6.5",
     "electron-store": "^6.0.1",
+    "isomorphic-git": "^1.7.8",
+    "simple-git": "^2.21.0",
     "stackedit-js": "^1.0.7",
     "vue": "^2.6.11"
   },
