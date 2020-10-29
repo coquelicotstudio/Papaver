@@ -74,38 +74,13 @@ const menu = Menu.buildFromTemplate([
              })
              .then(function(fileObj) {
                 // the fileObj has two props
-                let dir = path.parse(fileObj.filePath).dir;
-                let name = path.parse(fileObj.filePath).name
-                let els = dir.split(path.sep);
-                let type = els[els.length-1];
-                dialog.showMessageBox({
-                  type:"info",
-                  title:"Set a preview image!",
-                  message:"Set a preview image so the article will have a thumbnail in the 'Works' section",
-                  buttons:["Let's do it!"]
-                })
-                .then(function() {
-                  dialog.showOpenDialog({
-                    title: "Set a preview image",
-                    properties: ['openFile'],
-                    defaultPath: path.join(default_dir, 'images')
-                  })
-                  .then(function(imgObj) {
-                     // the fileObj has two props
-                     if (!imgObj.canceled) {
-                       console.log(preview);
-                       preview = path.parse(imgObj.filePaths[0]).base
-                       if (!fileObj.canceled) {
-                         console.log(preview);
-                         menu.items[1].submenu.items[1].enabled = true;
-                         win.webContents.send('FILE_SAVE', {file:fileObj.filePath, type:type, name:name, preview:preview})
-                       }
-                     }
-                  })
-                  .catch(function(err) {
-                     console.error(err)
-                  })
-                })
+                if (!fileObj.canceled) {
+                  let dir = path.parse(fileObj.filePath).dir;
+                  let name = path.parse(fileObj.filePath).name
+                  let els = dir.split(path.sep);
+                  let type = els[els.length-1];
+                  win.webContents.send('FILE_SAVE', {file:fileObj.filePath, type:type, name:name, preview:preview})
+                }
              })
              .catch(function(err) {
                 console.error(err)
@@ -186,7 +161,7 @@ const menu = Menu.buildFromTemplate([
   ])
 
 
-  Menu.setApplicationMenu(menu)
+  // Menu.setApplicationMenu(menu)
 
 
 
