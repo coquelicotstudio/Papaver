@@ -3,6 +3,7 @@
     <div id="text-editor" v-show="!dashboard">
       <textarea name="name" style="display: none" v-model="content"></textarea>
     </div>
+    <markvue></markvue>
     <div v-show="dashboard" style="padding:10px;">
       <div :class="{modal:true, 'is-active':want_to_delete}">
         <div class="modal-background"></div>
@@ -186,6 +187,8 @@ const http = require('isomorphic-git/http/node')
 import Stackedit from 'stackedit-js'
 import git from 'isomorphic-git'
 
+import markvue from '@/components/markvue.vue';
+
 const stackedit = new Stackedit
 
 export default {
@@ -243,68 +246,86 @@ export default {
         root.content = file.content.text;
       });
 
-      stackedit.on('close', (arg) => {
-        console.log(arg);
+      stackedit.on('close', () => {
         root.save_file()
-
-      })
-      this.ipcRenderer.on('NEW_FILE', filename => {
-        root.editing = false;
-        root.content = '';
-        stackedit.openFile({
-          name: filename, // with an optional filename
-          content: {
-            text: root.content // and the Markdown content.
-          }
-        });
       })
 
-      this.ipcRenderer.on('FILE_OPEN', (event, args) => {
-        fs.readFile(args[0], 'utf8', function (err, data) {
-          if (err) return console.log(err);
-          root.content = data;
-          root.editing = true;
-          stackedit.openFile({
-            name: 'Filename', // with an optional filename
-            content: {
-              text: root.content // and the Markdown content.
-            }
-          });
-        });
-      })
-
-      this.ipcRenderer.on('FILE_SAVE', (event, args) => {
-        console.log(args);
-        fs.writeFile(args.file, root.content, function (err) {
-          if (err) return console.log(err);
-          fs.readFile(root.blog, 'utf8', function (err, data) {
-            root.blog_data = JSON.parse(data);
-            let date = new Date;
-            if(!root.editing){
-              root.blog_data.entries[args.name] = {
-                title: args.name,
-                type: args.type,
-                preview: args.preview,
-                published: false,
-                created:date.toJSON(),
-                modified:date.toJSON(),
-              };
-            } else {
-              root.blog_data.entries[args.name].modified = date.toJSON();
-            }
-
-            fs.writeFile(root.blog, JSON.stringify(root.blog_data), function (err) {
-              if (err) return console.log(err);
-            });
-          });
-        });
-      })
-      this.ipcRenderer.on('DASH', () => {
-        root.dashboard = true;
-      });
+      // this.ipcRenderer.on('NEW_FILE', filename => {
+      //   root.editing = false;
+      //   root.content = '';
+      //   stackedit.openFile({
+      //     name: filename, // with an optional filename
+      //     content: {
+      //       text: root.content // and the Markdown content.
+      //     }
+      //   });
+      // })
+      //
+      // this.ipcRenderer.on('FILE_OPEN', (event, args) => {
+      //   fs.readFile(args[0], 'utf8', function (err, data) {
+      //     if (err) return console.log(err);
+      //     root.content = data;
+      //     root.editing = true;
+      //     stackedit.openFile({
+      //       name: 'Filename', // with an optional filename
+      //       content: {
+      //         text: root.content // and the Markdown content.
+      //       }
+      //     });
+      //   });
+      // })
+      //
+      // this.ipcRenderer.on('FILE_SAVE', (event, args) => {
+      //   console.log(args);
+      //   fs.writeFile(args.file, root.content, function (err) {
+      //     if (err) return console.log(err);
+      //     fs.readFile(root.blog, 'utf8', function (err, data) {
+      //       root.blog_data = JSON.parse(data);
+      //       let date = new Date;
+      //       if(!root.editing){
+      //         root.blog_data.entries[args.name] = {
+      //           title: args.name,
+      //           type: args.type,
+      //           preview: args.preview,
+      //           published: false,
+      //           created:date.toJSON(),
+      //           modified:date.toJSON(),
+      //         };
+      //       } else {
+      //         root.blog_data.entries[args.name].modified = date.toJSON();
+      //       }
+      //
+      //       fs.writeFile(root.blog, JSON.stringify(root.blog_data), function (err) {
+      //         if (err) return console.log(err);
+      //       });
+      //     });
+      //   });
+      // })
+      // this.ipcRenderer.on('DASH', () => {
+      //   root.dashboard = true;
+      // });
       // document.getElementsByClassName('stackedit-container')[0].style.display = "none";
   },
   methods:{
+    insert_image() {
+      const root = this;
+      this.dialog.showOpenDialog({
+        properties: ['openFile'],
+        title: "Insert an image",
+        defaultPath: path.join(root.default_dir, 'images'),
+      })
+      .then(function(fileObj) {
+         // the fileObj has two props
+         if (!fileObj.canceled) {
+
+          root.content += `\n ![inserisci descrizione immagine](${path.parse(fileObj.filePaths[0]).base}) \n`;
+
+         }
+      })
+      .catch(function(err) {
+         console.error(err)
+      })
+    },
     set_default_dir() {
       this.dialog.showOpenDialog({
         title: "Set the default directory",
@@ -596,6 +617,9 @@ export default {
       })
     },
   },
+  components: {
+    markvue,
+  },
   computed: {
     has_entries() {
       if(this.blog_data.entries){
@@ -626,8 +650,6 @@ export default {
         return "https://bulma.io/images/placeholders/640x480.png";
       }
     },
-  },
-  components: {
   },
   watch:{
     // dashboard() {
@@ -692,6 +714,9 @@ display:block;
 }
 .tags:hover .status{
 display: block;
+}
+.navigation-bar__button[title="Image – Ctrl+Shift+G"]{
+  display:none;
 }
 
 </style>
