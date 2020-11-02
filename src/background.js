@@ -202,49 +202,56 @@ function createWindow() {
   })
 
 
-  let default_dir = electron_store.get('default-directory');
-  default_dir = (default_dir ? default_dir : '');
-  fs.access(default_dir, (err) => {
-    if(err) {
+  // let default_dir = electron_store.get('default-directory');
+  // default_dir = (default_dir ? default_dir : '');
+  // fs.access(default_dir, (err) => {
+  //   if(err) {
+  //
+  //     let child = new BrowserWindow({ width:200, height:200, parent: win, modal: true, frame:false})
+  //     child.once('ready-to-show', () => {
+  //       child.show()
+  //     })
+  //     dialog.showMessageBox(child, {
+  //       type:"info",
+  //       title:"Default post directory missing!",
+  //       message:"You don't have a default directory for your articles yet. Set it now!",
+  //       buttons:["Let's do it!"]
+  //     })
+  //     .then(function() {
+  //       child.destroy();
+  //       dialog.showOpenDialog({
+  //         title: "Set the default directory",
+  //         properties: ['openDirectory']
+  //       })
+  //       .then(function(fileObj) {
+  //          // the fileObj has two props
+  //          if (!fileObj.canceled) {
+  //            default_dir = fileObj.filePaths[0];
+  //            electron_store.set('default-directory', fileObj.filePaths[0]);
+  //            set_blog(default_dir)
+  //          }
+  //       })
+  //       .catch(function(err) {
+  //          console.error(err)
+  //       })
+  //     })
+  //   }
+  // })
+  // function set_blog(default_dir){
+  //   if(default_dir){
+  //     const blog = path.join(default_dir, 'blog.json')
+  //     fs.access(blog, (err) => {
+  //       if (err) {
+  //         fs.writeFile(blog, JSON.stringify({entries:{}, home:{image:''}}), function (err) {
+  //           if (err) return console.log(err);
+  //         });
+  //         }
+  //     })
+  //   }
+  // }
+  //
+  // set_blog(default_dir);
 
-      let child = new BrowserWindow({ width:200, height:200, parent: win, modal: true, frame:false})
-      child.once('ready-to-show', () => {
-        child.show()
-      })
-      dialog.showMessageBox(child, {
-        type:"info",
-        title:"Default post directory missing!",
-        message:"You don't have a default directory for your articles yet. Set it now!",
-        buttons:["Let's do it!"]
-      })
-      .then(function() {
-        child.destroy();
-        dialog.showOpenDialog({
-          title: "Set the default directory",
-          properties: ['openDirectory']
-        })
-        .then(function(fileObj) {
-           // the fileObj has two props
-           if (!fileObj.canceled) {
-             default_dir = fileObj.filePaths[0];
-             electron_store.set('default-directory', fileObj.filePaths[0]);
-           }
-        })
-        .catch(function(err) {
-           console.error(err)
-        })
-      })
-    }
-  })
-
-  const blog = path.join(default_dir, 'blog.json')
-  fs.access(blog, (err) => {
-    if (err) {
-      fs.writeFile(blog, JSON.stringify({entries:{}, home:{image:''}}), function (err) {
-        if (err) return console.log(err);
-      });
-      }
-  })
 }
 
 

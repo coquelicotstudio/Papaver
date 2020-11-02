@@ -14,7 +14,7 @@
   },
   "main": "background.js",
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.15.1",
+    "array-equal": "^1.0.0",
     "core-js": "^3.6.5",
     "electron-store": "^6.0.1",
     "isomorphic-git": "^1.7.8",

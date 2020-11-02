@@ -182,6 +182,7 @@
 <script>
 const path = require('path')
 const fs = require('fs')
+const arrayequals = require('array-equal')
 const http = require('isomorphic-git/http/node')
 import Stackedit from 'stackedit-js'
 import git from 'isomorphic-git'
@@ -217,13 +218,46 @@ export default {
     // const el = document.querySelector('textarea');
     let root = this;
     this.default_dir = this.electron_store.get('default-directory');
+    this.default_dir = (this.default_dir ? this.default_dir : '');
+
+    fs.access(this.default_dir, (err) => {
+      if(err) {
+        this.dialog.showMessageBox({
+          type:"info",
+          title:"Default post directory missing!",
+          message:"You don't have a default directory for your articles yet. Set it now!",
+          buttons:["Let's do it!"]
+        })
+
+        .then(function() {
+              root.dialog.showOpenDialog({
+                title: "Set the default directory",
+                properties: ['openDirectory']
+              })
+              .then(function(fileObj) {
+                 // the fileObj has two props
+                 if (!fileObj.canceled) {
+                   root.default_dir = fileObj.filePaths[0];
+                   root.electron_store.set('default-directory', fileObj.filePaths[0]);
+                   root.create_blog(root.default_dir)
+                 }
+              })
+              .catch(function(err) {
+                 console.error(err)
+              })
+            })
+      }
+    });
+
+    this.create_blog(this.default_dir)
     this.cred = this.electron_store.get('cred') ? this.electron_store.get('cred') : ['','','','',''];
     this.us = this.cred[0] || '';
     this.pwd = this.cred[1] || '';
     this.author = this.cred[2] || '';
     this.mail = this.cred[3] || '';
     this.site = this.cred[4] || '';
-    this.blog = path.join(this.default_dir, 'blog.json');
+
+
     fs.readFile(root.blog, 'utf8', function (err, data) {
       root.blog_data = JSON.parse(data);
     });
@@ -305,6 +339,19 @@ export default {
       // document.getElementsByClassName('stackedit-container')[0].style.display = "none";
   },
   methods:{
+    create_blog(default_dir){
+      if(default_dir){
+        const blog = path.join(default_dir, 'blog.json')
+        this.blog = blog;
+        fs.access(blog, (err) => {
+          if (err) {
+            fs.writeFile(blog, JSON.stringify({entries:{}, home:{image:''}}), function (err) {
+              if (err) return console.log(err);
+            });
+            }
+        })
+      }
+    },
     set_default_dir() {
       this.dialog.showOpenDialog({
         title: "Set the default directory",
@@ -342,19 +389,82 @@ export default {
         }
       })
       const root = this;
-      const globby = require('globby');
-      const _dir = this.default_dir;
-      const dir = path.join(_dir, '../..')
-      const paths = await globby(_dir, { gitignore: true });
-      for (const filepath of paths) {
-          const rel_path = path.relative(dir, filepath)
-          await git.add({ fs, dir:dir, filepath:rel_path });
+      // const globby = require('globby');
+      const blog_dir = this.default_dir;
+      const dir = path.normalize(path.join(blog_dir, '../..'));
+      // const paths = await globby(blog_dir, { gitignore: true });
+
+      const status = await git.statusMatrix({
+        fs,
+        dir: dir,
+        filter: f => f.includes('coquelicot-posts'),
+      })
+
+
+
+      function filter_to_add(row){
+        const cols = {
+          FILENAME:0,
+          HEAD:1,
+          WORKDIR:2,
+          STAGE:3
+        };
+        const codes_to_add = [
+          [1,2,1],
+          [0,2,0],
+        ];
+        const filem = [row[cols.HEAD], row[cols.WORKDIR], row[cols.STAGE]]
+        if(arrayequals(filem, codes_to_add[0]) || arrayequals(filem, codes_to_add[1])){
+          return true
+        } else {
+          return false
+        }
       }
+
+      function filter_to_rm(row){
+        const cols = {
+          FILENAME:0,
+          HEAD:1,
+          WORKDIR:2,
+          STAGE:3
+        };
+        const codes_to_rm = [
+          [1,0,1],
+        ];
+        const filem = [row[cols.HEAD], row[cols.WORKDIR], row[cols.STAGE]]
+        if(arrayequals(filem, codes_to_rm[0])){
+          return true
+        } else {
+          return false
+        }
+      }
+
+      const to_add = status.filter(filter_to_add)
+      const to_rm = status.filter(filter_to_rm)
+      console.log(status);
+      console.log(to_add);
+      console.log(to_rm);
+
+
+      if(to_add.length > 0){
+        for (const ff in to_add) {
+            await git.add({ fs, dir:dir, filepath:to_add[ff][0] });
+        }
+      }
+
+      if(to_rm.length > 0){
+        console.log('h');
+        for (const ff in to_rm) {
+            await git.remove({ fs, dir:dir, filepath:to_rm[ff][0] });
+        }
+      }
+
 
       const email = this.email;
       const author = this.author;
       const date = new Date();
-      await git.commit({
+
+      const commitres = await git.commit({
         fs,
         dir: dir,
         author: {
@@ -363,6 +473,9 @@ export default {
         },
         message: 'posting on ' + date.toJSON()
       })
+
+      console.log(commitres);
+
       let pushResult = await git.push({
         fs,
         http,
@@ -385,8 +498,8 @@ export default {
           }
         },
       })
+
       if(pushResult.ok){
-        this.wait_publish = false;
         this.notification = {
           title: 'Pubblicato con successo!',
           expl: 'Attendi qualche minuto per vedere le modifiche live',
@@ -411,12 +524,7 @@ export default {
           }
         })
       }
-      // .then(function(resp){
-      //     console.log(resp);
-      // })
-      // .catch(function(err){
-      //   console.log(err);
-      // })
+      this.wait_publish = false;
     },
     save_file(){
       const root = this;
@@ -582,7 +690,6 @@ export default {
       .then(function(fileObj) {
          // the fileObj has two props
          if (!fileObj.canceled) {
-           console.log(root.blog);
            const data = JSON.parse(fs.readFileSync(root.blog, 'utf8'));
            data.home.image = fileObj.filePaths[0];
            fs.writeFile(root.blog, JSON.stringify(data), function (err) {
