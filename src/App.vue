@@ -643,7 +643,7 @@ export default {
 
 <style>
 
-@import "./assets/bulma-c.css";
+@import "./assets/coquelicot-bulma/bulma-c.css";
 .stackedit-iframe-container{
   top: 10% !important;
   left: 10% !important;
