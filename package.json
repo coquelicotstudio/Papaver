@@ -16,6 +16,7 @@
   "dependencies": {
     "array-equal": "^1.0.0",
     "core-js": "^3.6.5",
+    "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^6.0.1",
     "isomorphic-git": "^1.7.8",
     "simple-git": "^2.21.0",
