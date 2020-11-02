@@ -368,7 +368,7 @@ export default {
         http,
         dir: dir,
         remote: 'origin',
-        ref: 'testing',
+        ref: 'master',
         onAuth: url => {
           console.log(url);
           let auth = {username:this.us, password: this.pwd}

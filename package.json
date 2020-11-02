@@ -1,5 +1,6 @@
 {
-  "name": "editor",
+  "name": "coqueliblog",
+  "description": "Static blogging for coquelicot",
   "version": "0.1.0",
   "private": true,
   "productName": "coqueliblog",
