@@ -461,6 +461,7 @@ export default {
 
       if(to_add.length > 0){
         for (const ff in to_add) {
+          console.log('adding', to_add[ff][0] )
             await git.add({ fs, dir:dir, filepath:to_add[ff][0] });
         }
       }
@@ -468,6 +469,7 @@ export default {
       if(to_rm.length > 0){
         console.log('h');
         for (const ff in to_rm) {
+          console.log('removing', to_rm[ff][0] )
             await git.remove({ fs, dir:dir, filepath:to_rm[ff][0] });
         }
       }
@@ -529,35 +531,66 @@ export default {
           } else {
             root.blog_data = old_data;
           }
-        })
+        });
+        if(this.branch === 'posting'){
+          try {
+            const res = await git.pull({
+              fs,
+              http,
+              dir: dir,
+              remote: 'origin',
+              ref: this.branch,
+              singleBranch: true,
+              author: {
+                name: author,
+                email: email,
+              },
+            })
+            console.log(res);
+            root.notification = {
+              title: 'Non andato a buon fine.',
+              expl: ' Riclicca pubblica e dovremmo essere ABBOSTON! Ciè, che senzo ha.',
+              ok:false,
+            }
+          } catch (e) {
+            console.log(e);
+            root.notification = {
+              title: 'Mannaggia',
+              expl: 'Ci sono problemi! Plinio ha modificato qualcosa sul sito, ma tu non riesci ad aggiornare. CONTATTALO!',
+              ok:false,
+            }
+        }
+      }
       } finally {
         this.wait_publish = false;
-
-        if(pushResult.ok){
-          this.notification = {
-            title: 'Pubblicato con successo!',
-            expl: 'Attendi qualche minuto per vedere le modifiche live',
-            ok:true,
-          }
-        } else if(! pusherror){
-          this.notification = {
-            title: 'Qualcosa è andato storto!',
-            expl: pushResult.error,
-            ok:false,
-          }
-
-          fs.writeFile(this.blog, JSON.stringify(old_data), function (err) {
-            if(err) {
-              root.notification = {
-                title: 'Abbiamo problemi con il rollback dei dati! Contatta TOPO!',
-                expl: err,
-                ok:false,
-              }
-            } else {
-              root.blog_data = old_data;
+        if(!pusherror){
+          if(pushResult.ok){
+            this.notification = {
+              title: 'Pubblicato con successo!',
+              expl: 'Attendi qualche minuto per vedere le modifiche live',
+              ok:true,
             }
-          })
+          } else {
+            this.notification = {
+              title: 'Qualcosa è andato storto!',
+              expl: pushResult.error,
+              ok:false,
+            }
+
+            fs.writeFile(this.blog, JSON.stringify(old_data), function (err) {
+              if(err) {
+                root.notification = {
+                  title: 'Abbiamo problemi con il rollback dei dati! Contatta TOPO!',
+                  expl: err,
+                  ok:false,
+                }
+              } else {
+                root.blog_data = old_data;
+              }
+            })
+          }
         }
+
       }
     },
     save_file(){
