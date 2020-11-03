@@ -74,13 +74,13 @@
                     <div class="field is-small" style="text-align:initial;">
                       <label class="help">Author</label>
                       <div class="control">
-                        <input class="input is-small" type="text" placeholder="Your username" v-model="author">
+                        <input class="input is-small" type="text" placeholder="author" v-model="author">
                       </div>
                     </div>
                     <div class="field is-small" style="text-align:initial;">
                       <label class="help">Mail</label>
                       <div class="control">
-                        <input class="input is-small" type="text" placeholder="Your username" v-model="mail">
+                        <input class="input is-small" type="text" placeholder="email" v-model="mail">
                       </div>
                     </div>
                       <div class="field is-small" style="text-align:initial;">
@@ -101,7 +101,13 @@
                       <div class="field is-small" style="text-align:initial;">
                         <label class="help">Site</label>
                         <div class="control">
-                          <input class="input is-small" type="text" placeholder="Your username" v-model="site">
+                          <input class="input is-small" type="text" placeholder="site" v-model="site">
+                        </div>
+                      </div>
+					<div class="field is-small" style="text-align:initial;">
+                        <label class="help">Branch</label>
+                        <div class="control">
+                          <input class="input is-small" type="text" placeholder="master" v-model="branch">
                         </div>
                       </div>
 
@@ -155,12 +161,17 @@
                         <div class="control">
                           <div class="tags has-addons">
                             <span class="tag is-dark">Status</span>
-                            <template v-if="b.published">
-                              <span v-if="b.ismodified" class="tag is-warning"><i class="status">Modificato</i></span>
-                              <span v-else class="tag is-success"><i class="status">Pubblicato</i></span>
+                            <template v-if="wait_publish">
+                              <span class="tag button is-loading"></span>
                             </template>
                             <template v-else>
-                              <span class="tag is-coq"><i class="status">Bozza</i></span>
+                              <template v-if="b.published">
+                                <span v-if="b.ismodified" class="tag is-warning"><i class="status">Modificato</i></span>
+                                <span v-else class="tag is-success"><i class="status">Pubblicato</i></span>
+                              </template>
+                              <template v-else>
+                                <span class="tag is-coq"><i class="status">Bozza</i></span>
+                              </template>
                             </template>
                           </div>
                         </div>
@@ -212,6 +223,7 @@ export default {
       want_to_delete:false,
       file_to_delete:{},
       is_edited:'',
+	branch:'master',
     };
   },
   mounted(){
@@ -353,6 +365,7 @@ export default {
       }
     },
     set_default_dir() {
+	const root = this;
       this.dialog.showOpenDialog({
         title: "Set the default directory",
         properties: ['openDirectory']
@@ -360,7 +373,7 @@ export default {
       .then(function(fileObj) {
          // the fileObj has two props
          if (!fileObj.canceled) {
-           this.electron_store.set('default-directory', fileObj.filePaths[0]);
+           root.electron_store.set('default-directory', fileObj.filePaths[0]);
          }
       })
       .catch(function(err) {
@@ -473,42 +486,37 @@ export default {
         },
         message: 'posting on ' + date.toJSON()
       })
-
       console.log(commitres);
+      let pushResult;
+      let pusherror = false;
+      try {
+        pushResult = await git.push({
+          fs,
+          http,
+          dir: dir,
+          remote: 'origin',
+          ref: this.branch,
+          onAuth: url => {
+            console.log(url);
+            let auth = {username:this.us, password: this.pwd}
+            if (auth) return auth
 
-      let pushResult = await git.push({
-        fs,
-        http,
-        dir: dir,
-        remote: 'origin',
-        ref: 'testing',
-        onAuth: url => {
-          console.log(url);
-          let auth = {username:this.us, password: this.pwd}
-          if (auth) return auth
-
-          if (confirm('This repo is password protected. Ready to enter a username & password?')) {
-            auth = {
-              username: prompt('Enter username'),
-              password: prompt('Enter password'),
+            if (confirm('This repo is password protected. Ready to enter a username & password?')) {
+              auth = {
+                username: prompt('Enter username'),
+                password: prompt('Enter password'),
+              }
+              return auth
+            } else {
+              return { cancel: true }
             }
-            return auth
-          } else {
-            return { cancel: true }
-          }
-        },
-      })
-
-      if(pushResult.ok){
-        this.notification = {
-          title: 'Pubblicato con successo!',
-          expl: 'Attendi qualche minuto per vedere le modifiche live',
-          ok:true,
-        }
-      } else {
+          },
+        })
+      } catch (e) {
+        pusherror = true;
         this.notification = {
           title: 'Qualcosa è andato storto!',
-          expl: pushResult.error,
+          expl: e,
           ok:false,
         }
         fs.writeFile(this.blog, JSON.stringify(old_data), function (err) {
@@ -518,13 +526,39 @@ export default {
               expl: err,
               ok:false,
             }
-            return;
           } else {
             root.blog_data = old_data;
           }
         })
+      } finally {
+        this.wait_publish = false;
+
+        if(pushResult.ok){
+          this.notification = {
+            title: 'Pubblicato con successo!',
+            expl: 'Attendi qualche minuto per vedere le modifiche live',
+            ok:true,
+          }
+        } else if(! pusherror){
+          this.notification = {
+            title: 'Qualcosa è andato storto!',
+            expl: pushResult.error,
+            ok:false,
+          }
+
+          fs.writeFile(this.blog, JSON.stringify(old_data), function (err) {
+            if(err) {
+              root.notification = {
+                title: 'Abbiamo problemi con il rollback dei dati! Contatta TOPO!',
+                expl: err,
+                ok:false,
+              }
+            } else {
+              root.blog_data = old_data;
+            }
+          })
+        }
       }
-      this.wait_publish = false;
     },
     save_file(){
       const root = this;
@@ -691,7 +725,7 @@ export default {
          // the fileObj has two props
          if (!fileObj.canceled) {
            const data = JSON.parse(fs.readFileSync(root.blog, 'utf8'));
-           data.home.image = fileObj.filePaths[0];
+           data.home.image = path.join('images', path.parse(fileObj.filePaths[0]).base);
            fs.writeFile(root.blog, JSON.stringify(data), function (err) {
              if(err) console.log(err);
              root.blog_data = data;
@@ -727,7 +761,9 @@ export default {
         image = false;
       }
       if(image){
-        const data = fs.readFileSync(image);
+	console.log(image)
+        const data = fs.readFileSync(path.join(this.default_dir, image));
+		console.log(path.join(this.default_dir, image))
         return 'data:image/jpg;base64, ' + Buffer.from(data).toString('base64');
       } else {
         return "https://bulma.io/images/placeholders/640x480.png";

@@ -196,7 +196,7 @@ function createWindow() {
     // Load the index.html when not in development
     win.loadURL('app://./index.html')
   }
-  win.webContents.openDevTools()
+  //win.webContents.openDevTools()
   win.on('closed', () => {
     win = null
   })
