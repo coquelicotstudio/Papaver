@@ -479,7 +479,7 @@ export default {
       const author = this.author;
       const date = new Date();
 
-      const commitres = await git.commit({
+      await git.commit({
         fs,
         dir: dir,
         author: {
@@ -488,7 +488,6 @@ export default {
         },
         message: 'posting on ' + date.toJSON()
       })
-      console.log(commitres);
       let pushResult;
       let pusherror = false;
       try {
@@ -534,7 +533,7 @@ export default {
         });
         if(this.branch === 'posting'){
           try {
-            const res = await git.pull({
+            await git.pull({
               fs,
               http,
               dir: dir,
@@ -546,14 +545,12 @@ export default {
                 email: email,
               },
             })
-            console.log(res);
             root.notification = {
               title: 'Non andato a buon fine.',
-              expl: ' Riclicca pubblica e dovremmo essere ABBOSTON! Ciè, che senzo ha.',
+              expl: ' Riclicca pubblica e dovremmo essere a posto!',
               ok:false,
             }
           } catch (e) {
-            console.log(e);
             root.notification = {
               title: 'Mannaggia',
               expl: 'Ci sono problemi! Plinio ha modificato qualcosa sul sito, ma tu non riesci ad aggiornare. CONTATTALO!',
@@ -758,7 +755,7 @@ export default {
          // the fileObj has two props
          if (!fileObj.canceled) {
            const data = JSON.parse(fs.readFileSync(root.blog, 'utf8'));
-           data.home.image = path.join('images', path.parse(fileObj.filePaths[0]).base);
+           data.home.image = path.parse(fileObj.filePaths[0]).base;
            fs.writeFile(root.blog, JSON.stringify(data), function (err) {
              if(err) console.log(err);
              root.blog_data = data;
@@ -794,8 +791,8 @@ export default {
         image = false;
       }
       if(image){
-	console.log(image)
-        const data = fs.readFileSync(path.join(this.default_dir, image));
+        const imagepath = path.normalize(path.join(this.default_dir, 'images', image));
+        const data = fs.readFileSync(imagepath);
 		console.log(path.join(this.default_dir, image))
         return 'data:image/jpg;base64, ' + Buffer.from(data).toString('base64');
       } else {
