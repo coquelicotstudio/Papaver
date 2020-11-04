@@ -18,22 +18,6 @@
           </div>
         </div>
       </div>
-      <div v-if="notification"
-        :class="{
-          'notification':true,
-          'is-danger': !notification.ok,
-          'is-coq': notification.ok
-          }"
-          style="position: absolute;
-                z-index: 100;
-                right: 0;
-                min-width: 200px;
-                margin-right: 10px;"
-        >
-        <button class="delete" @click="notification=false;"></button>
-        <p class="is-size-4">{{notification.title}}</p>
-        <p>{{notification.expl}}</p>
-      </div>
       <div class="tile is-ancestor">
         <div class="tile is-vertical is-12">
           <div class="tile">
@@ -64,7 +48,7 @@
                   <div class="buttons are-small">
                     <button class="button" @click="toggle_cred">{{credbutton}}</button>
                     </div>
-                    <template v-if="credinput">
+                    <template v-if="credinput && !notification">
                     <div class="field is-small" style="text-align:initial;">
                       <label class="help">Username</label>
                       <div class="control">
@@ -120,6 +104,22 @@
                       </div>
                     </div>
                   </template>
+                  <div v-if="notification"
+                    :class="{
+                      'notification':true,
+                      'is-danger': !notification.ok,
+                      'is-coq': notification.ok
+                      }"
+                      style="position: absolute;
+                            z-index: 100;
+                            right: 0;
+                            min-width: 200px;
+                            margin-right: 10px;"
+                    >
+                    <button class="delete" @click="notification=false;"></button>
+                    <p class="is-size-4">{{notification.title}}</p>
+                    <p>{{notification.expl}}</p>
+                  </div>
 
                 </div>
 
@@ -137,12 +137,23 @@
                     <figure class="media-left" @click="set_preview(b)" style="cursor: pointer;">
                       <p class="image is-128x128">
                         <img v-if="b.preview" :src="img_data(b.preview)">
-                        <img v-else src="https://bulma.io/images/placeholders/128x128.png">
+                        <template v-else>
+                          <img v-if="b.type==='works'" src="https://bulma.io/images/placeholders/128x128.png">
+                          <img v-else-if="b.type==='news'" src="./assets/square-logo.jpg">
+                        </template>
                       </p>
                     </figure>
                     <div class="media-content">
                       <div class="content">
-                        <p style="margin:0;"><strong class="is-size-4">{{b.title}}</strong></p>
+                        <p style="margin:0;">
+                          <strong class="is-size-4">{{b.title}}
+                            <span class="tags has-addons">
+                              <span class="tag is-coq">Section</span>
+                              <span v-if="b.type=='works'" class="tag is-dark"><i>{{b.type}}</i></span>
+                              <span v-if="b.type=='news'" class="tag is-light"><i>{{b.type}}</i></span>
+                            </span>
+                          </strong>
+                        </p>
                         <p class="help is-size-6"> <small>Sezione: {{b.type}} | Data di creazione: {{date(b.created)}}</small></p>
                       </div>
                       <nav class="level is-mobile">
