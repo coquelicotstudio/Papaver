@@ -93,12 +93,23 @@ import App from './App.vue'
 const electron_store = new Electron_store();
 
 
+Vue.directive('scroll', {
+  inserted: function (el, binding) {
+    console.log(el, binding);
+    let f = function (evt) {
+      if (binding.value(evt, el)) {
+        window.removeEventListener('scroll', f)
+      }
+    }
+    window.addEventListener('scroll', f)
+  }
+})
+
 
 Vue.config.productionTip = false
 Object.defineProperty(Vue.prototype, 'ipcRenderer', { value: ipcRenderer });
 Object.defineProperty(Vue.prototype, 'electron_store', { value: electron_store });
 Object.defineProperty(Vue.prototype, 'dialog', { value: dialog });
-
 
 
 new Vue({

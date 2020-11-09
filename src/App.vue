@@ -40,15 +40,21 @@
               <article class="tile is-child notification is-light">
                 <div class="container" style="height:40vh; overflow-y:auto; padding:10px;">
                   <p class="is-size-4" style="text-align:initial;">Azioni</p>
-                  <div class="buttons are-small">
-                    <button class="button" @click="set_default_dir">Cartella di lavoro</button>
-                    <button :class="{'button is-success':true, 'is-loading':wait_publish}" @click="publish">Pubblica</button>
+                  <div class="buttons">
+                    <button :class="{'button is-success':true, 'is-loading':wait_publish}" @click="new_post"> Nuovo Post</button>
+                    <button :class="{'button is-coq':true, 'is-loading':wait_publish}" @click="new_tile"> Nuova Tile</button>
                   </div>
-                  <p class="is-size-4" style="text-align:initial;">Profilo</p>
-                  <div class="buttons are-small">
-                    <button class="button" @click="toggle_cred">{{credbutton}}</button>
-                    </div>
+                  <div class="is-size-4" style="text-align:initial;">
+                    <span>Profilo</span>
+                    <button class="button is-small" @click="toggle_cred" style="float:right;">{{credbutton}}</button>
+                  </div>
                     <template v-if="credinput && !notification">
+                    <div class="field is-small" style="text-align:initial;">
+                      <label class="help">Cartella di lavoro</label>
+                      <div class="control">
+                        <button class="button is-small" @click="set_default_dir">Cartella di lavoro</button>
+                      </div>
+                    </div>
                     <div class="field is-small" style="text-align:initial;">
                       <label class="help">Username</label>
                       <div class="control">
@@ -108,7 +114,7 @@
                     :class="{
                       'notification':true,
                       'is-danger': !notification.ok,
-                      'is-coq': notification.ok
+                      'is-success': notification.ok
                       }"
                       style="position: absolute;
                             z-index: 100;
@@ -125,21 +131,21 @@
 
               </article>
             </div>
-            <div class="tile is-parent is-paddingless" style="height:100vh">
-              <article class="tile is-child notification is-white">
+            <div class="tile is-parent is-vertical is-paddingless" style="height:100vh">
+              <article class="tile is-child notification is-white" style="height:60vh;">
                 <p class="is-size-4" style="text-align:initial;">I tuoi post</p>
-                <div class="" style="overflow-y:auto; height:85vh;">
+                <div class="" style="overflow-y:auto; height:100%;">
                 <template v-if="has_entries">
                   <p style="margin-top: 20%;">Non hai ancora nessun post!</p>
                 </template>
                 <template v-else>
-                  <article v-for="b in blog_data.entries" :key="b.title" class="media">
-                    <figure class="media-left" @click="set_preview(b)" style="cursor: pointer;">
+                  <article v-for="(b, id) in blog_data.entries" :key="b.title" class="media">
+                    <figure class="media-left" @click="set_preview(b, id)" style="cursor: pointer;">
                       <p class="image is-128x128">
                         <img v-if="b.preview" :src="img_data(b.preview)">
                         <template v-else>
                           <img v-if="b.type==='works'" src="https://bulma.io/images/placeholders/128x128.png">
-                          <img v-else-if="b.type==='news'" src="./assets/square-logo.jpg">
+                          <img v-else-if="b.type==='thoughts'" src="./assets/square-logo.jpg">
                         </template>
                       </p>
                     </figure>
@@ -150,7 +156,7 @@
                             <span class="tags has-addons">
                               <span class="tag is-coq">Section</span>
                               <span v-if="b.type=='works'" class="tag is-dark"><i>{{b.type}}</i></span>
-                              <span v-if="b.type=='news'" class="tag is-light"><i>{{b.type}}</i></span>
+                              <span v-if="b.type=='thoughts'" class="tag is-light"><i>{{b.type}}</i></span>
                             </span>
                           </strong>
                         </p>
@@ -158,10 +164,10 @@
                       </div>
                       <nav class="level is-mobile">
                         <div class="level-left">
-                            <div class="level-item button is-small is-coq" @click="edit_file(b)">
+                            <div class="level-item button is-small is-coq" @click="edit_file(b, id)">
                               edit
                             </div>
-                            <div class="level-item button is-small is-danger" @click="delete_file_ask(b)">
+                            <div class="level-item button is-small is-danger" @click="delete_file_ask(b, id)">
                               delete
                             </div>
                         </div>
@@ -191,7 +197,27 @@
                   </article>
                 </template>
                 </div>
-                <button class="button is-success is-large" style="float:right; margin-top:10px;" @click="new_post"><b>Nuovo post</b></button>
+              </article>
+              <article class="tile is-child notification is-coq" style="height:20vh; margin-bottom:0!important;">
+                <p class="is-size-4" style="text-align:initial;">Le tue tile</p>
+                <div class="columns" style="overflow-x: auto">
+                  <div v-for="(tile, id) in blog_data.tiles" :key="id" class="column is-narrow">
+                      <figure class="image is-128x128">
+                        <button class="delete" style="position: absolute;right:0;margin: 5px;" @click="delete_tile(tile,id)"></button>
+                        <img v-if="tile.image" :src="img_data(tile.image)">
+                        <template v-else>
+                          <img src="https://bulma.io/images/placeholders/128x128.png">
+                        </template>
+                      </figure>
+                  </div>
+                </div>
+              </article>
+              <article class="tile notification is-child" style="height:10vh">
+                <div class="filed" style="height: calc(10vh - 3rem);">
+                  <div class="control">
+                    <button :class="{'button is-success is-medium':true, 'is-loading':wait_publish}" style="float:right; margin-top:10px;" @click="publish"><b>Pubblica</b></button>
+                  </div>
+                </div>
               </article>
             </div>
           </div>
@@ -208,6 +234,7 @@ const arrayequals = require('array-equal')
 const http = require('isomorphic-git/http/node')
 import Stackedit from 'stackedit-js'
 import git from 'isomorphic-git'
+import { nanoid } from 'nanoid'
 
 const stackedit = new Stackedit
 
@@ -234,7 +261,7 @@ export default {
       want_to_delete:false,
       file_to_delete:{},
       is_edited:'',
-	branch:'master',
+      branch:'master',
     };
   },
   mounted(){
@@ -307,6 +334,7 @@ export default {
       })
       this.ipcRenderer.on('NEW_FILE', filename => {
         root.editing = false;
+        root.editing_id = null;
         root.content = '';
         stackedit.openFile({
           name: filename, // with an optional filename
@@ -368,7 +396,7 @@ export default {
         this.blog = blog;
         fs.access(blog, (err) => {
           if (err) {
-            fs.writeFile(blog, JSON.stringify({entries:{}, home:{image:''}}), function (err) {
+            fs.writeFile(blog, JSON.stringify({entries:{}, home:{image:''}, tiles:{}}), function (err) {
               if (err) return console.log(err);
             });
             }
@@ -400,6 +428,12 @@ export default {
         data.entries[entry].published = true;
         data.entries[entry].ismodified = false;
       }
+
+      for(let tile in data.tiles){
+        data.entries[tile].published = true;
+        data.entries[tile].ismodified = false;
+      }
+
       fs.writeFile(this.blog, JSON.stringify(data), function (err) {
         if(err) {
           root.notification = {
@@ -626,7 +660,8 @@ export default {
                root.blog_data = JSON.parse(data);
                let date = new Date;
                if(!root.editing){
-                 root.blog_data.entries[name] = {
+                 //todo
+                 root.blog_data.entries[nanoid(6)] = {
                    title: name,
                    type: type,
                    preview: preview,
@@ -636,8 +671,8 @@ export default {
                    modified:date.toJSON(),
                  };
                } else {
-                 root.blog_data.entries[name].modified = date.toJSON();
-                 root.blog_data.entries[name].ismodified = true;
+                 root.blog_data.entries[root.editing_id].modified = date.toJSON();
+                 root.blog_data.entries[root.editing_id].ismodified = true;
                }
                fs.writeFile(root.blog, JSON.stringify(root.blog_data), function (err) {
                  if (err) return console.log(err);
@@ -650,7 +685,7 @@ export default {
          console.error(err)
       })
     },
-    set_preview(file){
+    set_preview(file, id){
       const root = this;
       console.log(file);
       this.dialog.showOpenDialog({
@@ -663,7 +698,7 @@ export default {
          if (!fileObj.canceled) {
            console.log(root.blog);
            const data = JSON.parse(fs.readFileSync(root.blog, 'utf8'));
-           data.entries[file.title].preview = path.parse(fileObj.filePaths[0]).base;
+           data.entries[id].preview = path.parse(fileObj.filePaths[0]).base;
            fs.writeFile(root.blog, JSON.stringify(data), function (err) {
              if(err) console.log(err);
              root.blog_data = data;
@@ -674,11 +709,13 @@ export default {
          console.error(err)
       })
     },
-    delete_file_ask(file) {
+    delete_file_ask(file, id) {
       this.want_to_delete = true;
-      this.file_to_delete = file;
+      this.file_to_delete = [file, id];
     },
-    delete_file(file) {
+    delete_file(ftd) {
+      const file = ftd[0];
+      const id = ftd[1];
       const filename = path.join(this.default_dir, file.type, file.title+'.md');
       const root = this;
       let removed = false;
@@ -690,7 +727,7 @@ export default {
       }
       if(removed){
         const data = JSON.parse(fs.readFileSync(this.blog, 'utf8'));
-        delete data.entries[file.title]
+        delete data.entries[id]
         fs.writeFile(root.blog, JSON.stringify(data), function (err) {
           if(err) {
             root.notification = {
@@ -710,7 +747,7 @@ export default {
         })
       }
     },
-    edit_file(file) {
+    edit_file(file, id) {
       const filename = path.join(this.default_dir, file.type, file.title+'.md')
       this.is_edited = filename;
       const root = this;
@@ -718,6 +755,7 @@ export default {
         if (err) return console.log(err);
         root.content = data;
         root.editing = true;
+        root.editing_id = id;
         stackedit.openFile({
           name: 'Filename', // with an optional filename
           content: {
@@ -738,6 +776,7 @@ export default {
     new_post() {
       // this.dashboard = false;
       this.editing = false;
+      this.editing_id = null;
       this.content = '';
       stackedit.openFile({
         name: 'new', // with an optional filename
@@ -746,14 +785,100 @@ export default {
         }
       });
     },
+    delete_tile(tile, id) {
+      // const filename = path.join(this.default_dir, 'images', tile.image);
+      const root = this;
+      // let removed = false;
+      // try {
+      //   fs.unlinkSync(filename)
+      //   removed = true;
+      // } catch(err) {
+      //   console.error(err)
+      // }
+        const data = JSON.parse(fs.readFileSync(this.blog, 'utf8'));
+        delete data.tiles[id]
+        fs.writeFile(root.blog, JSON.stringify(data), function (err) {
+          if(err) {
+            root.notification = {
+              title: 'Qualcosa è andato storto!',
+              expl: err,
+              ok:false,
+            }
+          } else {
+            root.want_to_delete = false;
+            root.notification = {
+              title: 'Eliminato tile con successo!',
+              expl: 'Brava e bella!',
+              ok:true,
+            }
+            root.blog_data = data;
+          }
+        })
+    },
+    new_tile() {
+      const root = this;
+      let linkedto;
+      this.dialog.showOpenDialog({
+        properties: ['openFile'],
+        title: "Seleziona immagine della tile",
+        defaultPath: path.join(root.default_dir, 'images'),
+      })
+      .then(function(fileObj) {
+         // the fileObj has two props
+         if (!fileObj.canceled) {
+
+           root.dialog.showOpenDialog({
+             properties: ['openFile'],
+             title: "Seleziona il post a cui linkare la tile!",
+             defaultPath: path.join(root.default_dir),
+           })
+           .then(function(postObj) {
+              // the fileObj has two props
+              linkedto = path.parse(postObj.filePaths[0]).name;
+
+              if (linkedto) {
+                const data = JSON.parse(fs.readFileSync(root.blog, 'utf8'));
+                data.tiles[nanoid(6)] = {
+                    image: path.parse(fileObj.filePaths[0]).base,
+                    linkedto: linkedto,
+                    published: false,
+                    ismodified: false
+                  }
+                  console.log(data);
+                fs.writeFile(root.blog, JSON.stringify(data), function (err) {
+                  if(err) console.log(err);
+                  root.blog_data = data;
+                })
+              }
+
+           })
+           .catch(function(err) {
+              console.error(err)
+              linkedto = false;
+           })
+         }
+      })
+      .catch(function(err) {
+         console.error(err)
+      })
+    },
     date(date) {
       const _date = new Date(date).toLocaleDateString();
       const _time = new Date(date).toLocaleTimeString();
       return `${_date} alle ${_time}`
     },
     img_data(name) {
-      const data = fs.readFileSync(path.join(this.default_dir, 'images', name))
-      return `data:image/${name.split('.')[1]};base64, ${Buffer.from(data).toString('base64')}`
+      let data;
+      try {
+        data = fs.readFileSync(path.join(this.default_dir, 'images', name))
+      } catch (e) {
+        data = false
+      }
+      if (!data) {
+        return 'https://bulma.io/images/placeholders/128x128.png';
+      } else {
+        return `data:image/${name.split('.')[1]};base64, ${Buffer.from(data).toString('base64')}`;
+      }
     },
     set_home() {
       const root = this;
@@ -789,9 +914,9 @@ export default {
     },
     credbutton() {
       if(this.credinput){
-        return "Nascondi Credenziali";
+        return "Nascondi";
       } else {
-        return 'Mostra Credenziali';
+        return 'Mostra';
       }
     },
     home_image() {
@@ -804,7 +929,7 @@ export default {
       if(image){
         const imagepath = path.normalize(path.join(this.default_dir, 'images', image));
         const data = fs.readFileSync(imagepath);
-		console.log(path.join(this.default_dir, image))
+        console.log(path.join(this.default_dir, image))
         return 'data:image/jpg;base64, ' + Buffer.from(data).toString('base64');
       } else {
         return "https://bulma.io/images/placeholders/640x480.png";
