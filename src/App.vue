@@ -3,7 +3,22 @@
     <div id="text-editor" v-show="!dashboard">
       <textarea name="name" style="display: none" v-model="content"></textarea>
     </div>
-    <div v-show="dashboard" style="padding:10px;">
+    <div v-show="splash" class="is-overlay" style="z-index:100">
+      <div class="hero is-printer is-fullheight">
+        <div class="hero-body">
+          <div class="container">
+            <div>
+              <span style="display:inline-block;" class="image is-64x64">
+                <img src="./assets/not.png" alt="">
+              </span>
+              <span class="is-size-1 has-text-coq">papaver<i class="is-size-7 has-text-coq" style="margin-top:-50px;">armenicum</i></span>
+            </div>
+            <p></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-show="!splash" style="padding:10px;">
       <div :class="{modal:true, 'is-active':want_to_delete}">
         <div class="modal-background"></div>
         <div class="modal-content">
@@ -256,16 +271,20 @@ export default {
       mail: '',
       site: '',
       pwdvisible: false,
-      wait_publish:false,
-      notification:false,
-      want_to_delete:false,
-      file_to_delete:{},
-      is_edited:'',
-      branch:'master',
+      wait_publish: false,
+      notification: false,
+      want_to_delete: false,
+      file_to_delete: {},
+      is_edited: '',
+      branch: 'master',
+      splash: true,
     };
   },
   mounted(){
     // const el = document.querySelector('textarea');
+    setTimeout(() => {
+                this.splash = false
+            }, 3000)
     let root = this;
     this.default_dir = this.electron_store.get('default-directory');
     this.default_dir = (this.default_dir ? this.default_dir : '');
@@ -928,9 +947,17 @@ export default {
       }
       if(image){
         const imagepath = path.normalize(path.join(this.default_dir, 'images', image));
-        const data = fs.readFileSync(imagepath);
-        console.log(path.join(this.default_dir, image))
-        return 'data:image/jpg;base64, ' + Buffer.from(data).toString('base64');
+        let data;
+        try {
+          data = fs.readFileSync(imagepath);
+        } catch (e) {
+          data = false;
+        }
+        if (data) {
+          return 'data:image/jpg;base64, ' + Buffer.from(data).toString('base64');
+        } else {
+          return "https://bulma.io/images/placeholders/640x480.png";
+        }
       } else {
         return "https://bulma.io/images/placeholders/640x480.png";
       }
@@ -1002,5 +1029,6 @@ display:block;
 .tags:hover .status{
 display: block;
 }
+
 
 </style>
