@@ -11,7 +11,7 @@
               <span style="display:inline-block;" class="image is-64x64">
                 <img src="./assets/not.png" alt="">
               </span>
-              <span class="is-size-1 has-text-coq">papaver<i class="is-size-7 has-text-coq" style="margin-top:-50px;">armenicum</i></span>
+              <span class="is-size-1 has-text-coq">papaver<i class="is-size-7 has-text-coq" style="margin-top:-50px;">armeniacum</i></span>
             </div>
             <p></p>
           </div>
